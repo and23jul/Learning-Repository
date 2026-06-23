@@ -1,6 +1,6 @@
-# SAP Cloud Integration — Attributes Reference
+# SAP Cloud Integration — Attributes & Flow Steps Reference
 
-A working reference to the **attributes** you read and write inside a Cloud Integration iFlow — Headers, Properties, Body, Attachments — plus the predefined Camel and `SAP_*` ones the runtime hands you, how to access each, and the scenarios where each actually earns its place.
+A working reference in two parts. **Part I** covers the **attributes** you read and write inside a Cloud Integration iFlow — Headers, Properties, Body, Attachments — plus the predefined Camel and `SAP_*` ones the runtime hands you. **Part II** covers the **flow steps** (the editor palette) — every transformer, call, routing, security, persistence, and validation element you drop onto the canvas — with variants and a scenario for each.
 
 > **Grounding note.** Cloud Integration is **Apache Camel** under the hood. "Headers" and "Properties" are Camel message headers and exchange properties; most predefined attributes are Camel constants (`Camel*`) or SAP additions (`SAP_*`). Camel semantics are stable; the `SAP_*` set and a few runtime-config labels drift between Edge/Cloud builds and tenant versions. **Verify version-sensitive items against current SAP Help and your tenant's behaviour.** No live network was used to build this.
 
@@ -8,6 +8,7 @@ A working reference to the **attributes** you read and write inside a Cloud Inte
 
 ## Table of contents
 
+**Part I — Attributes**
 1. [The message model: the four containers](#1-the-message-model-the-four-containers)
 2. [How to access attributes](#2-how-to-access-attributes)
 3. [Predefined Camel headers](#3-predefined-camel-headers)
@@ -16,6 +17,18 @@ A working reference to the **attributes** you read and write inside a Cloud Inte
 6. [Error-handling attributes](#6-error-handling-attributes)
 7. [The gotchas that bite](#7-the-gotchas-that-bite)
 8. [Scenario cookbook (variations)](#8-scenario-cookbook-variations)
+
+**Part II — Flow Steps (palette)**
+9. [How the palette is organised](#9-how-the-palette-is-organised)
+10. [Process & participants](#10-process--participants)
+11. [Events & flow control](#11-events--flow-control)
+12. [Message transformers](#12-message-transformers)
+13. [Call activities](#13-call-activities)
+14. [Routing](#14-routing)
+15. [Security elements](#15-security-elements)
+16. [Persistence](#16-persistence)
+17. [Validators](#17-validators)
+18. [Step-selection cheat sheet](#18-step-selection-cheat-sheet)
 
 ---
 
@@ -350,4 +363,165 @@ Content Modifier → Message Header
 
 ---
 
-*Reference compiled for SAP Cloud Integration (Integration Suite). Camel attribute semantics are stable; the SAP_* set, ProcessDirect property propagation, and runtime-config labels are version-dependent — confirm against current SAP Help and your tenant before relying on any item in production.*
+# Part II — Flow Steps (palette)
+
+## 9. How the palette is organised
+
+Steps in the iFlow editor are grouped into a handful of palette categories. The sections below follow that grouping. A step is dropped onto the **integration process** (or a local process / exception subprocess) and wired into the message path.
+
+> **Scope note.** This lists the **modelling steps** on the canvas. **Adapters** (HTTPS, SFTP, OData, SOAP, IDoc, AMQP, ProcessDirect, Mail, Kafka, JMS, SuccessFactors, Ariba, …) are configured on the **sender/receiver channels**, not as palette steps, so they're out of scope here — that's a separate reference. The palette evolves between releases; if a step you expect is missing, it's likely newer than this doc — **check the editor.**
+
+The categories: **Message Transformers · Call · Routing · Security · Persistence · Validator**, plus the structural **Process/Participants** and **Events**.
+
+---
+
+## 10. Process & participants
+
+The structural containers — the pools and the start/end of a process.
+
+| Step | What it does | Scenario / note |
+|---|---|---|
+| **Sender** | The participant that triggers the iFlow; carries an inbound adapter (channel) | An app POSTing to an HTTPS endpoint; an SFTP poll |
+| **Receiver** | A downstream participant the iFlow calls; carries an outbound adapter | The backend OData service, the target SFTP |
+| **Integration Process** | The main pool holding the message path | Every iFlow has one |
+| **Local Integration Process** | A reusable sub-process called via Process Call / Looping Process Call | Modularise; create a transaction or error-handling scope |
+| **Exception Subprocess** | Catches errors raised in its parent process | Build fault responses, set custom MPL status, alerting (see Part I §6) |
+
+> A **Local Integration Process** is also how you scope a **transaction** or a tighter exception boundary — wrap the risky steps, call it, and handle failure locally without aborting the whole flow.
+
+---
+
+## 11. Events & flow control
+
+How a process starts and the ways it can end.
+
+| Step | What it does | Scenario / note |
+|---|---|---|
+| **Start Message** | Entry point of a process, fed by a sender | Standard request-driven start |
+| **End Message** | Normal completion; returns the message to the caller (sync) or ends it (async) | End of the happy path |
+| **Start Timer / Timer Start Event** | Starts the iFlow **on a schedule** with no sender | Nightly batch poll; periodic data push — there's no inbound message, you build one |
+| **Error Start Event** | Entry point of an **Exception Subprocess** | Where the caught exception lands |
+| **Terminate Message / End Event** | Stops processing at this point | Deliberately halt after a business condition |
+| **Error End Event** | Ends the process **in error** — marks the MPL as Failed | Force a failure status when a business rule says "this must fail" |
+| **Escalation End Event** | Ends a branch with an escalation (used in some exception patterns) | Signal a non-fatal escalation |
+
+---
+
+## 12. Message transformers
+
+The steps that change the message — its content, format, or encoding.
+
+| Step | Variants / sub-types | What it does | Scenario |
+|---|---|---|---|
+| **Content Modifier** | — | Set Headers / Properties / Body (Part I §2.2) | Stash a value, set a response code, build a small payload |
+| **Message Mapping** | — | Graphical field-to-field mapping with functions, value mapping, user-defined functions | Map a source schema to a target schema |
+| **Operation Mapping** | — | Wraps message mappings (PI/PO migration artifact) | Reuse an imported PI operation mapping |
+| **XSLT Mapping** | — | Transform XML via an XSLT stylesheet | Complex structural transforms beyond graphical mapping |
+| **ID Mapping** | — | Map/track message IDs between systems | Cross-system ID correlation |
+| **Converter** | CSV↔XML, JSON↔XML, XML↔EDI, (and more) | Convert between data formats | Flat-file CSV from a bank → XML for mapping; JSON API ↔ XML backend |
+| **Filter** | — | Extract a node-set from XML via **XPath** and make it the new body | Strip an envelope down to the business node |
+| **Script** | Groovy, JavaScript | Arbitrary code over the message (Part I §2.3) | Anything declarative steps can't express — custom logic, dynamic headers, exception shaping |
+| **Encoder** | Base64 Encode, GZIP Compress, ZIP Compress, MIME Multipart Encode | Encode/compress/package the body | Base64 a binary for a JSON field; gzip before upload |
+| **Decoder** | Base64 Decode, GZIP Decompress, ZIP Decompress, MIME Multipart Decode | The inverse | Decode an incoming Base64 blob; unzip a polled archive |
+| **Message Digest** | — | Compute a hash digest of the message (for signing/integrity) | Pre-compute a digest used by a downstream signature |
+
+> Mapping vs Script vs XSLT, quick call: **graphical mapping** for clear field-to-field with reuse; **XSLT** for heavy structural reshaping; **Groovy** for logic, conditionals, and anything touching headers/properties. Don't reach for Groovy when a mapping would be clearer to the next person who maintains it.
+
+---
+
+## 13. Call activities
+
+Steps that call *out* (to a receiver) or call *in* (to a local process). This is the category people most often pick wrong.
+
+| Step | Sync? | What it does | Scenario |
+|---|---|---|---|
+| **Request Reply** | Synchronous | Send to a receiver and **wait for the response**, which replaces the body | Call an OData/REST service and use its response |
+| **Send** | Asynchronous | Fire-and-forget to a receiver; **no response** expected | Drop a message on a queue (JMS/AMQP); async notify |
+| **Content Enricher** | Synchronous | Call a receiver and **combine** its response with the original message (Combine or Enrich strategy) | Look up master data and merge it into the in-flight payload without losing the original |
+| **Poll Enrich** | Synchronous | **Poll** a source (e.g. file/SFTP) to fetch and enrich | Pull a reference file mid-flow |
+| **Process Call** | — | Invoke a **Local Integration Process** once | Modularise; create an exception/transaction scope |
+| **Looping Process Call** | — | Repeatedly invoke a local process **while a condition holds** | Pagination — keep calling an API until `hasMore=false`; chunked processing |
+
+> **Request Reply vs Content Enricher** is the classic mix-up: Request Reply **replaces** the body with the response; Content Enricher **keeps** your original and combines the response into it. If a lookup must not clobber your payload, you want Content Enricher.
+
+> **Looping Process Call** is the right tool for **API pagination** — set a "has more pages" property inside the loop body and let the condition drive it. Don't fake loops with recursion or multiple copied steps.
+
+---
+
+## 14. Routing
+
+Steps that direct or fan out the message path.
+
+| Step | Variants | What it does | Scenario |
+|---|---|---|---|
+| **Router** | — | Content-based routing: send the message down **one** branch based on a condition (XPath/expression), with a **default** route | Route by document type, country, amount threshold |
+| **Multicast** | Parallel, Sequential | Send a **copy** to multiple branches | Send the same order to two backends; produce two formats |
+| **Join** | — | Marks where multicast branches **converge** | Pair with Gather after a multicast |
+| **Gather** | Combine, Merge strategies | **Combine** messages from multicast/splitter branches into one | Reassemble split results; merge two enrichment responses |
+| **Splitter** | General, Iterating, IDoc, EDI, PKCS#7/CMS | Break one message into **many** (by XPath, expression, or format) | Process a batch line-by-line; split an IDoc bundle; split an EDI interchange |
+| **Aggregator** | — | **Collect related messages over time** and combine them, using a correlation key + completion condition/timeout | Batch up individual messages arriving over an hour into one file; recombine async split results |
+
+> **Parallel vs Sequential Multicast:** parallel fans out concurrently (faster, but branches are isolated and order isn't guaranteed); sequential runs branches in order (predictable, slower). Remember branches don't share property/header writes (Part I §5).
+
+> **Splitter vs Aggregator** are inverses: splitter is **one→many in one run**; aggregator is **many runs→one**, stateful, and needs a data store. Aggregator is the heavier, trickier one — get the correlation key and completion condition right or messages either never complete or complete too early.
+
+---
+
+## 15. Security elements
+
+Message-level crypto, distinct from transport (TLS) security on the adapters.
+
+| Step | Variants | What it does | Scenario |
+|---|---|---|---|
+| **Encryptor** | PKCS#7/CMS, PGP | Encrypt the message body for a recipient | Send a PGP-encrypted file to a partner's SFTP |
+| **Decryptor** | PKCS#7/CMS, PGP | Decrypt an inbound encrypted body | Decrypt a partner's PGP payload on arrival |
+| **Signer** | Simple Signer, PKCS#7/CMS, XML Digital Signer, PGP | Digitally **sign** the message for integrity/non-repudiation | Sign an outbound document a partner will verify |
+| **Verifier** | PKCS#7/CMS, XML Signature, PGP | **Verify** an inbound signature | Reject a tampered or unsigned partner message |
+
+> Keys/certs live in the tenant **Keystore** (and PGP keyrings); the step references aliases. Message-level (PGP/CMS) protects the payload end-to-end through intermediaries; transport-level (TLS) only protects the hop. Partner B2B/EDI flows usually need the message-level steps, not just TLS.
+
+---
+
+## 16. Persistence
+
+Steps that store state — for staging, decoupling, dedupe, or audit.
+
+| Step | Operations / variants | What it does | Scenario |
+|---|---|---|---|
+| **Data Store Operations** | Write, Get, Select, Delete | Read/write entries in a **Data Store** (transient or persistent), keyed by ID | Decouple sender from receiver (write now, process later); stage for retry; async hand-off |
+| **Write Variables** | Global, Local | Persist named **variables** across iFlow runs | Remember a high-water mark / last-run timestamp for delta polling |
+| **Persist Message** | — | Save a **snapshot** of the message at this point (visible in monitoring, with retention) | Audit/troubleshoot — capture the payload mid-flow without affecting processing |
+| **Idempotent Process Call** | — | Use an **idempotent repository** so a message with an already-seen key is processed **once** | Deduplicate — drop replays of the same order ID; exactly-once semantics |
+
+> **Data Store vs Persist Message:** Data Store is *operational* (you write, then later get/select/delete to drive processing); Persist Message is *observational* (a monitoring snapshot you don't read back into the flow). Don't use Persist Message as a queue.
+
+> **Write Variables** is the standard pattern for **delta/incremental polling** — store the last successful timestamp/ID, read it next run, query only newer records.
+
+---
+
+## 17. Validators
+
+| Step | Variants | What it does | Scenario |
+|---|---|---|---|
+| **XML Validator** | — | Validate the body against an **XSD/WSDL/DTD** schema; fail on non-conformance | Reject malformed inbound XML before it corrupts a mapping |
+| **EDI Validator / Extractor** | — | Validate/extract **EDI** interchanges against rules | B2B: enforce partner EDI conformance, raise functional acks on failure |
+
+> Validate **early** — at the boundary, right after the sender — so a bad payload fails fast with a clear error rather than deep in a mapping with a cryptic one.
+
+---
+
+## 18. Step-selection cheat sheet
+
+The decisions that trip people up, in one place:
+
+- **Call a service and use its answer** → Request Reply. **Call it but keep my payload** → Content Enricher. **Don't need an answer** → Send.
+- **One message → many** → Splitter. **Many → one, over time** → Aggregator. **Same message → several places at once** → Multicast (+ Gather to recombine).
+- **Reusable sub-logic / error scope** → Local Integration Process via Process Call. **Repeat until done (pagination)** → Looping Process Call.
+- **Change format** → Converter. **Change structure** → Mapping or XSLT. **Change a header/property/small body** → Content Modifier. **Logic it can't express** → Script.
+- **Stage/decouple/retry** → Data Store. **Remember across runs** → Write Variables. **Dedupe** → Idempotent Process Call. **Audit snapshot** → Persist Message.
+- **Protect the payload through intermediaries** → Encryptor/Signer (message-level), not just TLS.
+- **Reject bad input early** → Validator at the boundary.
+
+---
+
+*Reference compiled for SAP Cloud Integration (Integration Suite). Camel attribute semantics are stable; the SAP_* set, ProcessDirect property propagation, runtime-config labels, and the exact palette/step variants are version-dependent — confirm against current SAP Help and your tenant before relying on any item in production. Adapters (sender/receiver channels) are out of scope here and warrant their own reference.*
