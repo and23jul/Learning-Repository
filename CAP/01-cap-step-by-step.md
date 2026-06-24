@@ -262,6 +262,7 @@ This generates a local CDS definition of the remote service under `srv/external/
 
 **c. Call it from your handler:**
 
+Insert below code block under // → Step 7: push a PM notification to ECC
 ```js
 const ecc = await cds.connect.to('ECC_PM')
 await ecc.create('Notifications', {
