@@ -4,6 +4,22 @@ The implementation layer: the `srv/*.js` where you hook into CAP's request lifec
 
 The model to hold: every request flows through a pipeline — **before → on → after**. CAP supplies a generic `on` handler for CRUD (it talks to the DB for you). Your job is to hook *into* that pipeline: validate on the way in (`before`), replace or extend the core behaviour (`on`), enrich on the way out (`after`). Think of it as middleware around each operation.
 
+## Table of contents
+
+1. [Two implementation styles](#two-implementation-styles)
+2. [The three phases](#the-three-phases)
+3. [What you can register for](#what-you-can-register-for)
+4. [The req object (your toolbox)](#the-req-object-your-toolbox)
+5. [Messages & errors — reject vs error](#messages--errors--reject-vs-error)
+6. [Querying — cds.ql](#querying--cdsql)
+7. [Calling other services](#calling-other-services)
+8. [Implementing actions & functions](#implementing-actions--functions)
+9. [Events & messaging (async, decoupled)](#events--messaging-async-decoupled)
+10. [Transactions & timing (the ECC trap)](#transactions--timing-the-ecc-trap)
+11. [Wildcard & shared registration](#wildcard--shared-registration)
+12. [Lifecycle / bootstrap](#lifecycle--bootstrap)
+13. [TypeScript note](#typescript-note)
+14. [Gotchas](#gotchas)
 ---
 
 ## Two implementation styles
