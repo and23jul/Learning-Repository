@@ -6,6 +6,23 @@ The CAP loop you're learning: define a CDS model → `cds watch` gives you a liv
 
 **Two tools, two jobs.** Commands that start with `cds`, `npm`, `cf`, `mbt` are **terminal** (PowerShell on Windows is fine). Everything that's CDS or JS *content* is a **file you create in an editor** (VS Code) — you never type those into PowerShell. The setup is two panes side by side: editor for the files, terminal running `cds watch` next to it.
 
+## Table of contents
+
+- [0. Prerequisites (one-time)](#0-prerequisites-one-time)
+- [1. Scaffold the project](#1-scaffold-the-project)
+- [1b. Set up your workbench (VS Code)](#1b-set-up-your-workbench-vs-code)
+- [1c. The files you'll create, in order](#1c-the-files-youll-create-in-order)
+- [2. Define the data model](#2-define-the-data-model)
+- [3. Define the service](#3-define-the-service)
+- [4. Run it — the inner loop](#4-run-it--the-inner-loop)
+- [5. Add sample data](#5-add-sample-data)
+- [6. Custom logic — event handlers](#6-custom-logic--event-handlers)
+- [7. Call ECC as a remote service (the clean-core boundary)](#7-call-ecc-as-a-remote-service-the-clean-core-boundary)
+- [8. (Optional) Fiori elements preview](#8-optional-fiori-elements-preview)
+- [9. Swap SQLite → HANA Cloud](#9-swap-sqlite--hana-cloud)
+- [10. Add security](#10-add-security)
+- [11. Deploy to Cloud Foundry](#11-deploy-to-cloud-foundry)
+- [What to actually do tonight](#what-to-actually-do-tonight)
 ---
 
 ## 0. Prerequisites (one-time)
