@@ -1,3 +1,11 @@
+
+# RAP for the Returning ABAP Developer
+### What the RESTful Application Programming Model is, how it relates to ABAP, and when to use it
+
+If the modern-syntax shift was "expressions replace statements," RAP is a bigger conceptual jump — but in the *opposite* direction from what people fear. **RAP is not a new language and it does not replace ABAP.** It's a framework *built in* ABAP that standardizes how you build transactional OData services. Your ABAP doesn't disappear; it moves into specific, named slots, and the framework takes over the boilerplate you used to write by hand.
+
+Mental model: classic ABAP was you machining a car from raw metal — Dynpro screens, PAI/PBO, manual `ENQUEUE`/`DEQUEUE`, hand-rolled transaction logic, your own buffer. RAP hands you the **chassis, drivetrain, and safety systems already assembled** (locking, draft, ETag/optimistic concurrency, transactional sequencing, OData exposure) and asks you to bolt on only the business-specific parts: validations, determinations, actions, custom save. You write less ABAP, but the ABAP you write is pure business logic.
+
 ## Table of contents
 
 1. [RAP vs classic SAP, at a glance](#1-rap-vs-classic-sap-at-a-glance)
@@ -11,13 +19,6 @@
 9. [RAP vs CAP — choosing the right model](#9-rap-vs-cap--choosing-the-right-model)
 10. [Minimal anatomy — the shape of the smallest managed BO](#10-minimal-anatomy--the-shape-of-the-smallest-managed-bo)
 11. [TL;DR for someone coming back](#tldr-for-someone-coming-back)
-
-# RAP for the Returning ABAP Developer
-### What the RESTful Application Programming Model is, how it relates to ABAP, and when to use it
-
-If the modern-syntax shift was "expressions replace statements," RAP is a bigger conceptual jump — but in the *opposite* direction from what people fear. **RAP is not a new language and it does not replace ABAP.** It's a framework *built in* ABAP that standardizes how you build transactional OData services. Your ABAP doesn't disappear; it moves into specific, named slots, and the framework takes over the boilerplate you used to write by hand.
-
-Mental model: classic ABAP was you machining a car from raw metal — Dynpro screens, PAI/PBO, manual `ENQUEUE`/`DEQUEUE`, hand-rolled transaction logic, your own buffer. RAP hands you the **chassis, drivetrain, and safety systems already assembled** (locking, draft, ETag/optimistic concurrency, transactional sequencing, OData exposure) and asks you to bolt on only the business-specific parts: validations, determinations, actions, custom save. You write less ABAP, but the ABAP you write is pure business logic.
 
 ---
 
