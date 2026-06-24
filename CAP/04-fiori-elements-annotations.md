@@ -6,6 +6,21 @@ The model to hold: Fiori elements is a **generic frontend**. It reads annotated 
 
 Put these in a separate `app/<app>/annotations.cds` file, `annotate Service.Entity with @(…)` — keep them out of `db/` and `srv/`.
 
+## Table of contents
+
+1. [CAP shortcuts (the cheap wins first)](#cap-shortcuts-the-cheap-wins-first)
+2. [List Report — the four annotations](#list-report--the-four-annotations)
+3. [Object Page — the structure annotations](#object-page--the-structure-annotations)
+4. [DataField $Type variants (cells & buttons)](#datafield-type-variants-cells--buttons)
+5. [Common vocabulary essentials](#common-vocabulary-essentials)
+6. [Status colors & KPIs](#status-colors--kpis)
+7. [Field control & visibility](#field-control--visibility)
+8. [Capabilities (what the service permits)](#capabilities-what-the-service-permits)
+9. [Charts (brief)](#charts-brief)
+10. [How the floorplan assembles (the map)](#how-the-floorplan-assembles-the-map)
+11. [Gotchas](#gotchas)
+12. [Authoritative sources — what each is actually for](#authoritative-sources--what-each-is-actually-for)
+
 ---
 
 ## CAP shortcuts (the cheap wins first)
