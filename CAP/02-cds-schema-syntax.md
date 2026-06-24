@@ -2,6 +2,25 @@
 
 The data-modeling language (CDL) you use in `db/schema.cds`. Summarized but complete — keep it open while you model. Service-layer syntax (`srv/*.cds`) is a separate concern and not covered here.
 
+## Table of contents
+
+1. [File header](#file-header)
+2. [Entities & keys](#entities--keys)
+3. [Built-in types](#built-in-types)
+4. [Element modifiers & constraints](#element-modifiers--constraints)
+5. [Reusable aspects (the : mixin)](#reusable-aspects-the--mixin)
+6. [Associations (references, no ownership)](#associations-references-no-ownership)
+7. [Compositions (containment / ownership)](#compositions-containment--ownership)
+8. [Enums](#enums)
+9. [Custom types](#custom-types)
+10. [Structured & nested elements](#structured--nested-elements)
+11. [Localized text](#localized-text)
+12. [Calculated & virtual elements](#calculated--virtual-elements)
+13. [Validation annotations (schema-level)](#validation-annotations-schema-level)
+14. [Persistence-control annotations](#persistence-control-annotations)
+15. [Extend & annotate existing definitions](#extend--annotate-existing-definitions)
+16. [Comments](#comments)
+17. [Gotchas worth remembering](#gotchas-worth-remembering)
 ---
 
 ## File header
