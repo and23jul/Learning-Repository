@@ -4,6 +4,20 @@ The `srv/*.cds` layer: the different ways to expose, reshape, restrict, and exte
 
 The mental model: a service is a **facade**. The DB model is your private warehouse; the service is the shopfront. Every variation below is a different way to decide what's on the shelf, how it's labelled, and who's allowed to touch it.
 
+## Table of contents
+
+1. [Service definition & path](#service-definition--path)
+2. [The exposure spectrum (the core variations)](#the-exposure-spectrum-the-core-variations)
+3. [Associations in a service — redirection](#associations-in-a-service--redirection)
+4. [Access shaping](#access-shaping)
+5. [Draft handling (Fiori)](#draft-handling-fiori)
+6. [Actions & functions](#actions--functions)
+7. [Events (async / messaging)](#events-async--messaging)
+8. [Authorization](#authorization)
+9. [Protocols](#protocols)
+10. [Service as a facade over a remote (your ECC case)](#service-as-a-facade-over-a-remote-your-ecc-case)
+11. [Gotchas worth remembering](#gotchas-worth-remembering)
+
 ---
 
 ## Service definition & path
