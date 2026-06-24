@@ -1,3 +1,17 @@
+## Table of contents
+
+1. [RAP vs classic SAP, at a glance](#1-rap-vs-classic-sap-at-a-glance)
+2. [Where RAP intersects ABAP, and where it differs](#2-where-rap-intersects-abap-and-where-it-differs)
+3. [The artifact stack — what a RAP app is made of](#3-the-artifact-stack--what-a-rap-app-is-made-of)
+4. [Managed vs Unmanaged — the decision that defines your project](#4-managed-vs-unmanaged--the-decision-that-defines-your-project)
+5. [The business-logic building blocks (where your ABAP lives)](#5-the-business-logic-building-blocks-where-your-abap-lives)
+6. [EML — calling RAP business objects from ABAP](#6-eml--calling-rap-business-objects-from-abap)
+7. [Use cases — when to reach for RAP (and when not)](#7-use-cases--when-to-reach-for-rap-and-when-not)
+8. [Where it runs, and the clean-core tie-in](#8-where-it-runs-and-the-clean-core-tie-in)
+9. [RAP vs CAP — choosing the right model](#9-rap-vs-cap--choosing-the-right-model)
+10. [Minimal anatomy — the shape of the smallest managed BO](#10-minimal-anatomy--the-shape-of-the-smallest-managed-bo)
+11. [TL;DR for someone coming back](#tldr-for-someone-coming-back)
+
 # RAP for the Returning ABAP Developer
 ### What the RESTful Application Programming Model is, how it relates to ABAP, and when to use it
 
