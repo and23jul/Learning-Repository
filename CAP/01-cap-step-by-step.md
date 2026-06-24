@@ -165,7 +165,10 @@ Try a query in the browser:
 ```
 http://localhost:4004/odata/v4/inspection-service/Inspections
 ```
-
+or if you use GitHub Codespace:
+```
+https://<codespace_name>-4004.app.github.dev/
+```
 ---
 
 ## 5. Add sample data
