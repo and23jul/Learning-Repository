@@ -78,7 +78,7 @@ Why Port 4004 specifically? It's just CAP's default port. You can override it (c
 Notes on the folders:
 - `db/data/` does **not** exist yet — create the `data` subfolder under `db` first (right-click `db` → New Folder → `data`), then add the two CSVs inside it.
 - `app/inspections/` also doesn't exist — only create it if you do the optional Fiori preview in Step 8 (right-click `app` → New Folder → `inspections`).
-- The two `.js`/`.cds` in `srv/` must share the base name (`inspection-service`) — that's how CAP auto-wires the logic file to the service.
+- **IMPORTANT:** The two `.js`/`.cds` in `srv/` must share the base name (`inspection-service`) — that's how CAP auto-wires the logic file to the service.
 
 Do them top to bottom. After file 1 and file 2, `cds watch` already serves a working OData service — check `localhost:4004` before going further. Files 3–4 give it data, file 5 gives it behaviour, file 6 is the optional free UI.
 
