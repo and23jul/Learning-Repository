@@ -234,7 +234,7 @@ The three handler phases you'll use constantly: `before` (validate / mutate inpu
 
 ---
 
-## 7. Call ECC as a remote service (the clean-core boundary)
+## 7. Call ECC as a remote service (the clean-core boundary) - CURRENTLY STUCK HERE, MAY HAVE TO BACKTRACK AND ADJUST
 
 This is the important one. Your app reaches into ECC over a **released API via a destination** — it never modifies the core. This is the single concrete piece of "clean core."
 
