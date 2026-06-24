@@ -114,8 +114,8 @@ What's doing the work here:
 - `managed` adds `createdAt / createdBy / modifiedAt / modifiedBy` — free audit fields.
 - `Composition` = parent owns children (delete the inspection, its items go too). `Association` would be a reference without ownership. The composition is what makes Inspection+Items a single deep document.
 
+For more info on CDS Schema Syntax, refer to https://github.com/and23jul/Learning-Repository/blob/main/CAP/02-cds-schema-syntax.md 
 ---
-**IMPORTANT:**For more info on CDS Schema Syntax, refer to https://github.com/and23jul/Learning-Repository/blob/main/CAP/02-cds-schema-syntax.md 
 
 ## 3. Define the service
 
