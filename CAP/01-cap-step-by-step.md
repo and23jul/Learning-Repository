@@ -44,15 +44,15 @@ cds --version           # confirms the CLI is on your PATH
 ## 1. Scaffold the project
 
 ```bash
-cds init inspection-app
-cd inspection-app
+cds init demo-app
+cd demo-app
 npm install
 ```
 
 This creates the standard layout:
 
 ```
-inspection-app/
+demo-app/
 ├── app/          # UI layer (Fiori elements, or your React app points here)
 ├── db/           # data model + sample data
 ├── srv/          # service definitions + custom logic
@@ -67,7 +67,7 @@ Three folders, clear separation: `db` = what the data *is*, `srv` = what you *ex
 
 Step 1 was the last pure-PowerShell step for a while. From here you're creating and editing files, which is editor work. Set up the two-pane workbench once:
 
-1. From inside the `inspection-app` folder in PowerShell, run `code .` to open VS Code on the project. (If `code` isn't recognized: open VS Code manually → File → Open Folder → pick the `inspection-app` folder. Or reinstall VS Code with the "Add to PATH" option ticked.)
+1. From inside the `demo-app` folder in PowerShell, run `code .` to open VS Code on the project. (If `code` isn't recognized: open VS Code manually → File → Open Folder → pick the `demo-app` folder. Or reinstall VS Code with the "Add to PATH" option ticked.)
 
 2. Install the **SAP CDS Language Support** extension (publisher: SAP SE) from the Extensions panel (`Ctrl+Shift+X`, search "CDS"). Without it you're editing `.cds` files blind — with it you get highlighting, autocomplete, and inline errors.
 
@@ -86,16 +86,16 @@ Why Port 4004 specifically? It's just CAP's default port. You can override it (c
 | # | Create this file | In folder | Content from | Type |
 |---|---|---|---|---|
 | 1 | `schema.cds` | `db/` | Step 2 | CDS model |
-| 2 | `inspection-service.cds` | `srv/` | Step 3 | CDS service |
-| 3 | `energy.inspections-Inspections.csv` | `db/data/` | Step 5 | sample data |
-| 4 | `energy.inspections-InspectionItems.csv` | `db/data/` | Step 5 | sample data |
-| 5 | `inspection-service.js` | `srv/` | Step 6 | JS logic |
-| 6 | `annotations.cds` | `app/inspections/` | Step 8 *(optional UI)* | CDS annotations |
+| 2 | `demo-service.cds` | `srv/` | Step 3 | CDS service |
+| 3 | `<Namespace>-SearchResult.csv` | `db/data/` | Step 5 | sample data |
+| 4 | `<Namespace>-DocsAttachment.csv` | `db/data/` | Step 5 | sample data |
+| 5 | `demo-service.js` | `srv/` | Step 6 | JS logic |
+| 6 | `annotations.cds` | `app/demo-app/` | Step 8 *(optional UI)* | CDS annotations |
 
 Notes on the folders:
 - `db/data/` does **not** exist yet — create the `data` subfolder under `db` first (right-click `db` → New Folder → `data`), then add the two CSVs inside it.
-- `app/inspections/` also doesn't exist — only create it if you do the optional Fiori preview in Step 8 (right-click `app` → New Folder → `inspections`).
-- **IMPORTANT:** The two `.js`/`.cds` in `srv/` must share the base name (`inspection-service`) — that's how CAP auto-wires the logic file to the service.
+- `app/demo-app/` also doesn't exist — only create it if you do the optional Fiori preview in Step 8 (right-click `app` → New Folder → `demo-app`).
+- **IMPORTANT:** The two `.js`/`.cds` in `srv/` must share the base name (`demo-service`) — that's how CAP auto-wires the logic file to the service.
 
 Do them top to bottom. After file 1 and file 2, `cds watch` already serves a working OData service — check `localhost:4004` before going further. Files 3–4 give it data, file 5 gives it behaviour, file 6 is the optional free UI.
 
@@ -106,23 +106,30 @@ Do them top to bottom. After file 1 and file 2, `cds watch` already serves a wor
 Create `db/schema.cds`. This is **your** model — it does not live in ECC.
 
 ```cds
-namespace energy.inspections;
+namespace my_company.it.search_results; //Namespace referred in some places in this document
 
 using { cuid, managed } from '@sap/cds/common';
+// These are reusable mixins imported from SAP's standard CDS library (@sap/cds/common). When you add them to an entity, they automatically inject pre-defined fields:
+// cuid — adds a UUID primary key:
+// key ID : UUID;
+// managed — adds four audit fields:
+// createdAt  : Timestamp;
+// createdBy  : String;
+// modifiedAt : Timestamp;
+// modifiedBy : String;
+// CAP fills these in automatically on create/update — you don't write any code for it.
 
-entity Inspections : cuid, managed {
-  assetID     : String(20);                  // references ECC equipment, not an FK into ECC
-  inspector   : String(100);
-  performedAt : Timestamp;
-  status      : String(20) default 'draft';  // draft / submitted / actioned
-  items       : Composition of many InspectionItems on items.parent = $self;
+entity SearchResult : cuid, managed {
+  PONum     : String(10);      //Ebeln                
+  PRNum     : String(10);      //Banfn
+  NetAmount : Decimal(20,5);   //Netwr
+  DocName   : String(100);     //Name1
+  NavAttachment : Composition of many DocsAttachment on NavAttachment.parent = $self;
 }
 
-entity InspectionItems : cuid {
-  parent    : Association to Inspections;
-  checkType : String(50);
-  result    : String(10);                    // pass / fail / NA
-  note      : String(500);
+entity DocsAttachment : cuid {
+  parent             : Association to SearchResult; //This have to be called parent
+  AttachmentBinary   : LargeBinary;  //getdocatta/FileAtta
 }
 ```
 
@@ -131,19 +138,19 @@ What's doing the work here:
 - `managed` adds `createdAt / createdBy / modifiedAt / modifiedBy` — free audit fields.
 - `Composition` = parent owns children (delete the inspection, its items go too). `Association` would be a reference without ownership. The composition is what makes Inspection+Items a single deep document.
 
-For more info on CDS Schema Syntax, refer to https://github.com/and23jul/Learning-Repository/blob/main/CAP/02-cds-schema-syntax.md 
+For more info on CDS Schema Syntax, refer to https://github.com/and23jul/Learning-Repository/blob/main/CAP/02-cds-schema-syntax.md
 ---
 
 ## 3. Define the service
 
-Create `srv/inspection-service.cds`. This exposes the model as an OData v4 service.
+Create `srv/demo-service.cds`. This exposes the model as an OData v4 service.
 
 ```cds
-using { energy.inspections as my } from '../db/schema';
+using { my_company.it.search_results as myNamespace } from '../db/schema'; //Namespace Referred here and Instantiated
 
-service InspectionService {
-  entity Inspections     as projection on my.Inspections;
-  entity InspectionItems as projection on my.InspectionItems;
+service svcSearchResult {                                                  //Service Instantiated here
+  entity eSearchResult     as projection on myNamespace.SearchResult;      //Entity Referred here and Instantiated
+  entity eDocsAttachment   as projection on myNamespace.DocsAttachment;    //Entity Referred here and Instantiated
 }
 ```
 
@@ -157,36 +164,38 @@ service InspectionService {
 cds watch
 ```
 
-Open **http://localhost:4004**. You have a live OData v4 service on an in-memory SQLite DB, with no deploy and no database to install. The index page lists your entities; click `Inspections` to hit the OData endpoint.
+Open **http://localhost:4004**. You have a live OData v4 service on an in-memory SQLite DB, with no deploy and no database to install. The index page lists your entities; click `SearchResult` to hit the OData endpoint.
 
 Leave this running. Every file save reloads automatically. This is where you'll live while building.
 
 Try a query in the browser:
 ```
-http://localhost:4004/odata/v4/inspection-service/Inspections
+http://localhost:4004/odata/v4/demo-service/svcSearchResult
 ```
 or if you use GitHub Codespace:
 ```
 https://<codespace_name>-4004.app.github.dev/
+https://<codespace_name>-4004.app.github.dev/$fiori-preview/svcSearchResult/eSearchResult
 ```
 ---
 
 ## 5. Add sample data
 
-So you're not staring at empty sets. Create CSVs in `db/data/`, named `<namespace>-<Entity>.csv`:
+IMPORTANT: So you're not staring at empty sets. Create CSVs in `db/data/`, named `<namespace>-<Entity>.csv`:
 
-`db/data/energy.inspections-Inspections.csv`
+`db/data/my_company.it.search_results-SearchResult.csv`
 ```csv
-ID;assetID;inspector;performedAt;status
-11111111-1111-1111-1111-111111111111;PUMP-001;andre;2026-06-22T08:00:00Z;submitted
-22222222-2222-2222-2222-222222222222;XFMR-014;laura;2026-06-21T14:30:00Z;draft
+ID;PONum;PRNum;NetAmount;DocName
+0000000001;8000149067;4000153006;10000.00;Dummy Doc 1
+0000000002;8000148417;4000153971;20000.00;Dummy Doc 2
 ```
 
-`db/data/energy.inspections-InspectionItems.csv`
+`db/data/my_company.it.search_results-DocsAttachment.csv`
 ```csv
-ID;parent_ID;checkType;result;note
-aaaa1111-0000-0000-0000-000000000001;11111111-1111-1111-1111-111111111111;seal;fail;weeping at flange
-aaaa1111-0000-0000-0000-000000000002;11111111-1111-1111-1111-111111111111;vibration;pass;
+ID;parent_ID;AttachmentBinary
+1000000001;0000000001;XXX
+1000000002;0000000002;YYY
+
 ```
 
 Header names = element names. The association column is `parent_ID` (the association name + `_ID`). `cds watch` reloads and the data is queryable immediately.
@@ -195,39 +204,23 @@ Header names = element names. The association column is `parent_ID` (the associa
 
 ## 6. Custom logic — event handlers
 
-The CDS files gave you CRUD for free. Now add behaviour. Create `srv/inspection-service.js` — CAP auto-wires a `.js` next to the `.cds` of the same name.
+The CDS files gave you CRUD for free. Now add behaviour. Create `srv/demo-service.js` — CAP auto-wires a `.js` next to the `.cds` of the same name.
 
 ```js
 const cds = require('@sap/cds')
 
-module.exports = class InspectionService extends cds.ApplicationService {
+module.exports = class ceSearchResult extends cds.ApplicationService {
   init() {
-    const { Inspections } = this.entities
+    const { eSearchResult } = this.entities
 
-    // validation — runs before the row is written
-    this.before('CREATE', Inspections, (req) => {
-      if (!req.data.assetID) req.reject(400, 'assetID is required')
-    })
-
-    // react to a status change to "submitted"
-    this.after('UPDATE', Inspections, async (data, req) => {
-      if (data.status === 'submitted') {
-        await this._raiseNotificationIfFailed(data.ID, req)
-      }
+    this.before('CREATE', eSearchResult, (req) => {
+      if (!req.data.PONum) req.reject(400, 'PONum is required')
     })
 
     return super.init()
   }
-
-  async _raiseNotificationIfFailed(inspectionID, req) {
-    const { InspectionItems } = this.entities
-    const failed = await SELECT.from(InspectionItems)
-      .where({ parent_ID: inspectionID, result: 'fail' })
-    if (failed.length === 0) return
-    // → Step 7: push a PM notification to ECC
-    req.info(`${failed.length} failed item(s) — raising ECC notification`)
-  }
 }
+
 ```
 
 The three handler phases you'll use constantly: `before` (validate / mutate input), `on` (replace the default behaviour entirely), `after` (read-only enrich, or trigger side-effects). Most of your business logic is `before` for guards and `after` for reactions.
@@ -241,38 +234,27 @@ This is the important one. Your app reaches into ECC over a **released API via a
 **a. Import the ECC service definition.** Get the EDMX/metadata of the ECC OData service you're calling (e.g. a PM notification service) and import it:
 
 ```bash
-cds import ecc-pm-notification.edmx --as cds
+cds import ZMYOPTIMA_SRV.edmx --as cds
 ```
 
 This generates a local CDS definition of the remote service under `srv/external/`.
 
-**b. Declare it as a required remote service** in `package.json` under `cds.requires`, pointing at a destination:
+**b. Declare it as a required remote service** in `package.json` under `cds.requires`, pointing at a destination (AUTO):
 
 ```jsonc
 "cds": {
-  "requires": {
-    "ECC_PM": {
-      "kind": "odata-v2",                  // ECC services are usually v2
-      "model": "srv/external/ECC_PM",
-      "credentials": { "destination": "ECC_PM_DEST" }   // BTP destination name
+   "requires": {
+      "ZMYOPTIMA_SRV": {
+        "kind": "odata-v2",
+        "model": "srv/external/ZMYOPTIMA_SRV",
+        "credentials": { "destination": "Gateway-x96-SSO" }   
+      }
     }
-  }
 }
 ```
 
-**c. Call it from your handler:**
 
-Insert below code block under // → Step 7: push a PM notification to ECC
-```js
-const ecc = await cds.connect.to('ECC_PM')
-await ecc.create('Notifications', {
-  equipment: data.assetID,
-  type: 'M2',
-  shortText: `Inspection ${inspectionID}: failed items`
-})
-```
-
-The destination (`ECC_PM_DEST`) and its Cloud Connector route are configured in your BTP subaccount — that's the environment wiring, and the exact field names depend on the actual ECC service, so confirm those against your system. The *pattern* is what matters: ECC PM stays untouched; your app talks to it over a released API; your inspection workflow is entirely yours.
+The destination  and its Cloud Connector route are configured in your BTP subaccount — that's the environment wiring, and the exact field names depend on the actual ECC service, so confirm those against your system. The *pattern* is what matters: ECC stays untouched; your app talks to it over a released API; your inspection workflow is entirely yours.
 
 > Local testing tip: you don't need live ECC to develop. CAP supports mocking remote services, and `cds watch --profile hybrid` can bind real destinations when you're ready. Check current docs for the mocking setup — it shifts between cds-dk versions.
 
@@ -283,21 +265,19 @@ The destination (`ECC_PM_DEST`) and its Cloud Connector route are configured in 
 If you want a UI without writing one, annotate and let Fiori elements generate it. Add `app/inspections/annotations.cds`:
 
 ```cds
-using InspectionService as svc from '../../srv/inspection-service';
+using svcSearchResult as svc from '../../srv/demo-service'; //This svcSearchResult referred from the one in search-result.cds
 
-annotate svc.Inspections with @(
+annotate svc.eSearchResult with @(
   UI: {
     LineItem: [
-      { Value: assetID },
-      { Value: inspector },
-      { Value: status },
-      { Value: performedAt }
-    ]
+      { Value: PONum },
+      { Value: PRNum }    ]
   }
 );
+
 ```
 
-`cds watch` will surface a Fiori elements preview link. This is the "free UI" path. If Fiori's too heavy for your UX (your earlier point), skip this entirely — your **UI5-Web-Components-for-React** app just consumes the same `http://localhost:4004/odata/v4/inspection-service/` endpoint. The backend doesn't change.
+`cds watch` will surface a Fiori elements preview link. This is the "free UI" path. If Fiori's too heavy for your UX (your earlier point), skip this entirely — your **UI5-Web-Components-for-React** app just consumes the same endpoint. The backend doesn't change.
 
 ---
 
