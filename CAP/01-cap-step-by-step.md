@@ -56,7 +56,9 @@ Step 1 was the last pure-PowerShell step for a while. From here you're creating 
 
 3. Open VS Code's integrated terminal (`` Ctrl+` ``) and run `cds watch` **now**, before you create any files. It'll sit waiting on an empty model. As you add each file below, you'll watch it pick them up live — far better for learning than building everything then running it cold.
 
-Now you have: editor pane for files, integrated terminal running `cds watch`, browser on `localhost:4004`. That's the loop.
+Now you have: editor pane for files, integrated terminal running `cds watch`, browser on `localhost:4004`. That's the loop.if you are using codespace in github, then your URL should be https://<codespace_name>-4004.app.github.dev/
+
+Why Port 4004 specifically? It's just CAP's default port. You can override it (cds watch --port 4005, or the PORT env var), but there's no reason to — leave it at 4004 and that's the address to point the browser at.
 
 ---
 
