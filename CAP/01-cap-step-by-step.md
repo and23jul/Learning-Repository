@@ -123,7 +123,7 @@ Why Port 4004 specifically? It's just CAP's default port. You can override it (c
 Create `db/schema.cds`. This is **your** model — it does not live in ECC.
 
 ```cds
-namespace my_company.it.search_results; //Namespace referred in some places in this document
+namespace compname.divname.demoapp; //Namespace referred in some places in this document (all small letter, no separator on words-to be reviewed for Governance)
 
 using { cuid, managed } from '@sap/cds/common';
 // These are reusable mixins imported from SAP's standard CDS library (@sap/cds/common). When you add them to an entity, they automatically inject pre-defined fields:
@@ -141,19 +141,14 @@ entity SearchResult : cuid, managed {
   PRNum     : String(10);      //Banfn
   NetAmount : Decimal(20,5);   //Netwr
   DocName   : String(100);     //Name1
-  NavAttachment : Composition of many DocsAttachment on NavAttachment.parent = $self;
+  NavAttachment : Composition of many DocsAttachment on NavAttachment.parent = $self; //parent owns children (delete the parent, its childern go too)
 }
 
 entity DocsAttachment : cuid {
-  parent             : Association to SearchResult; //This have to be called parent
+  parent             : Association to SearchResult; //attribte have to be named "parent" would be a reference without ownership. The composition is what makes child entity a single deep document.
   AttachmentBinary   : LargeBinary;  //getdocatta/FileAtta
 }
 ```
-
-What's doing the work here:
-- `cuid` adds a UUID `ID` key automatically.
-- `managed` adds `createdAt / createdBy / modifiedAt / modifiedBy` — free audit fields.
-- `Composition` = parent owns children (delete the inspection, its items go too). `Association` would be a reference without ownership. The composition is what makes Inspection+Items a single deep document.
 
 For more info on CDS Schema Syntax, refer to https://github.com/and23jul/Learning-Repository/blob/main/CAP/02-cds-schema-syntax.md
 ---
@@ -163,11 +158,11 @@ For more info on CDS Schema Syntax, refer to https://github.com/and23jul/Learnin
 Create `srv/demo-service.cds`. This exposes the model as an OData v4 service.
 
 ```cds
-using { my_company.it.search_results as myNamespace } from '../db/schema'; //Namespace Referred here and Instantiated
+using { compname.divname.demoapp as myNS } from '../db/schema';     //Namespace Referred here and Instantiated
 
-service svcSearchResult {                                                  //Service Instantiated here
-  entity eSearchResult     as projection on myNamespace.SearchResult;      //Entity Referred here and Instantiated
-  entity eDocsAttachment   as projection on myNamespace.DocsAttachment;    //Entity Referred here and Instantiated
+service svcSearchResult {                                           //Service Instantiated here
+  entity entSearchResult     as projection on myNS.SearchResult;    //Entity Referred here and Instantiated
+  entity entDocsAttachment   as projection on myNS.DocsAttachment;  //Entity Referred here and Instantiated
 }
 ```
 
