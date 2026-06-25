@@ -495,6 +495,24 @@ Create  `/app/router/xs-app.json`
 
 ```
 
+Insert some entries into  `mta.yaml` 
+```jsonc
+modules:
+  - name: demo-app-srv
+    ...
+    requires:
+      ...
+      - name: demo-app-connectivity
+...
+resources:
+  ...
+  - name: demo-app-connectivity
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: connectivity
+      service-plan: lite
+  ...
+```
 
 
 `@requires` / `@restrict` map to scopes and role collections. Locally, `cds watch` mocks users (configurable in `.cdsrc.json`) so you can test authorization without XSUAA. In BTP, role collections get assigned to users in the subaccount — an unassigned role collection is the classic silent 403.
