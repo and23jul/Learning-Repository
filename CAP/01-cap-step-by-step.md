@@ -49,6 +49,27 @@ cd demo-app
 npm install
 ```
 
+After NPM Install, you may get error saying package.json does not exist. if that happens create package.json manually in demo-app folder
+```js
+{
+  "name": "demo-app",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@sap/cds": "^9",
+    "express": "^4"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^2"
+  },
+  "scripts": {
+    "start": "cds-serve"
+  }
+}
+```
+
+
+
 This creates the standard layout:
 
 ```
