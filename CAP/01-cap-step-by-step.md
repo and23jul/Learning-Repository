@@ -477,13 +477,3 @@ The MTA descriptor bundles your CAP service, the HANA deployer, and the XSUAA in
 > Kyma path instead of CF: `cds add helm` / `cds up` is the route. Only go there if you already run k8s — otherwise CF is the simpler home for this.
 
 ---
-
-## What to actually do tonight
-
-Steps 1–6 take maybe 30 minutes and need nothing but Node. You'll have a running, queryable OData service with sample data and one piece of custom logic. That alone teaches you 80% of the CAP mental model.
-
-Then the two steps worth real attention for your situation:
-- **Step 7** — the ECC remote call. This is the clean-core boundary made concrete, and it's the part that's specific to running CAP beside ECC.
-- **Step 10** — authorization model. Get the role design right early; retrofitting auth is miserable.
-
-Skip 9 and 11 until you've got the app working locally and actually want it on BTP.
