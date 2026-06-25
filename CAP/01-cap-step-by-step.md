@@ -54,18 +54,18 @@ NOTE: In case you forgot to pass --<language> argument as above, package.json wo
 {
   "name": "demo-app",
   "version": "1.0.0",
-  "private": true,
   "dependencies": {
-    "@sap/cds": "^9",
-    "express": "^4"
+    "@sap/cds": "^9"
   },
   "devDependencies": {
-    "@cap-js/sqlite": "^2"
+    "@cap-js/sqlite": "^2.4"
   },
   "scripts": {
     "start": "cds-serve"
-  }
+  },
+  "private": true
 }
+
 ```
 
 
