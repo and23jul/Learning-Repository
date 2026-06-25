@@ -396,7 +396,7 @@ this.on('READ', Inspections, async (req) => {
 })
 ```
 
-If the entities is just SAP backend Entity, instead of redefining in `db/schema.cds`, the definition should be done on service definition `srv/demo-service.cds` instead. here's how you define them
+If the entities is just SAP backend Entity, instead of redefining in `db/schema.cds`, the definition should be done on service definition `srv/demo-service.cds` instead. here's how you define them, to be on the safe side, we safeguard the query to return only 10 records.
 
 ```cds
 using { compname.divname.demoapp as myNS } from '../db/schema';   //Local DB namespace
@@ -409,6 +409,7 @@ using { ZMYOPTIMA_SRV } from './external/ZMYOPTIMA_SRV';           //Imported EC
 
 service svcDemoApp {
   // Live ECC: reshape getResearchDetailsSet's fields into our names
+  @cds.query.limit: { default: 10, max: 10 }   // cap page size at 10
   entity entSearchResult as projection on ZMYOPTIMA_SRV.getResearchDetailsSet {
     key Banfn as ID,
         Banfn as PRNum,
