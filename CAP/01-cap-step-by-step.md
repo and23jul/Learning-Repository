@@ -288,6 +288,42 @@ annotate svc.eSearchResult with @(
 
 ```
 
+Under `srv/` add `server.js` with content as below
+```js
+const cds = require('@sap/cds')
+
+cds.on('bootstrap', (app) => {
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/$fiori-preview/') && req.path.endsWith('.js')) {
+      res.type('application/javascript')
+    }
+    next()
+  })
+})
+
+module.exports = cds.server
+```
+
+in `package.json` under `cds` add `fiori.preview` with value true
+
+```jsonc
+"cds": {
+  "fiori": {
+    "preview": true
+  },
+  "requires": {
+  .....
+  }
+}
+
+```
+
+
+    "fiori": {
+      "preview": true
+    },
+
+
 `cds watch` will surface a Fiori elements preview link. This is the "free UI" path. If Fiori's too heavy for your UX (your earlier point), skip this entirely — your **UI5-Web-Components-for-React** app just consumes the same endpoint. The backend doesn't change.
 
 ---
