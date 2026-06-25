@@ -69,6 +69,11 @@ NOTE: In case you forgot to pass --<language> argument as above, package.json wo
 
 ```
 
+You may also want to stage package-lock.json to prevent error during build
+```bash
+git add package-lock.json
+```
+
 
 
 This creates the standard layout:
