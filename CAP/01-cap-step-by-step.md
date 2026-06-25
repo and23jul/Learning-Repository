@@ -106,11 +106,11 @@ Why Port 4004 specifically? It's just CAP's default port. You can override it (c
 
 | # | Create this file | In folder | Content from | Type | Remarks |
 |---|---|---|---|---|---|
-| 1 | `schema.cds` | `db/` | Step 2 | CDS model | |
-| 2 | `demo-service.cds` | `srv/` | Step 3 | CDS service | |
+| 1 | `schema.cds` | `db/` | Step 2 | CDS model |---|
+| 2 | `demo-service.cds` | `srv/` | Step 3 | CDS service |---|
 | 3 | `<Namespace>-SearchResult.csv` | `db/data/` | Step 5 | sample data | Subfolder `db/data/` need to be created manually |
 | 4 | `<Namespace>-DocsAttachment.csv` | `db/data/` | Step 5 | sample data | Subfolder `db/data/` need to be created manually |
-| 5 | `demo-service.js` | `srv/` | Step 6 | JS logic | |
+| 5 | `demo-service.js` | `srv/` | Step 6 | JS logic |---|
 | 6 | `annotations.cds` | `app/demo-app/` | Step 8 *(optional UI)* | CDS annotations | Subfolder `app/demo-app/` need to be created manually | 
 
 Notes on the folders:
