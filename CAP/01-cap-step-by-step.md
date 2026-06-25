@@ -196,14 +196,14 @@ https://<codespace_name>-4004.app.github.dev/$fiori-preview/svcSearchResult/eSea
 
 IMPORTANT: So you're not staring at empty sets. Create CSVs in `db/data/`, named `<namespace>-<Entity>.csv`:
 
-`db/data/my_company.it.search_results-SearchResult.csv`
+`db/data/compname.divname.demoapp-SearchResult.csv`
 ```csv
 ID;PONum;PRNum;NetAmount;DocName
 0000000001;8000149067;4000153006;10000.00;Dummy Doc 1
 0000000002;8000148417;4000153971;20000.00;Dummy Doc 2
 ```
 
-`db/data/my_company.it.search_results-DocsAttachment.csv`
+`db/data/compname.divname.demoapp-DocsAttachment.csv`
 ```csv
 ID;parent_ID;AttachmentBinary
 1000000001;0000000001;XXX
@@ -397,14 +397,17 @@ this.on('READ', Inspections, async (req) => {
 })
 ```
 
-If the entities is just SAP ackend Entity, instead of redefining in `db/schema.cds`, the definition should be done on service definition `srv/demo-service.cds` instead 
+If the entities is just SAP backend Entity, instead of redefining in `db/schema.cds`, the definition should be done on service definition `srv/demo-service.cds` instead 
 
 ```cds
-using { compname.divname.demoapp as myNS } from '../db/schema';     //Namespace Referred here and Instantiated
+using { ZMYOPTIMA_SRV } from './external/ZMYOPTIMA_SRV';
 
-service svcSearchResult {                                           //Service Instantiated here
-  entity entSearchResult     as projection on myNS.SearchResult;    //Entity Referred here and Instantiated
-  entity entDocsAttachment   as projection on myNS.DocsAttachment;  //Entity Referred here and Instantiated
+service svcDemoApp {
+  entity entSearchResult as projection on ZMYOPTIMA_SRV.getResearchDetailsSet {  // reshape ECC's fields
+    key Banfn as ID,
+        Banfn as PRNum,
+        Ebeln as PONum
+  };
 }
 ```
 
