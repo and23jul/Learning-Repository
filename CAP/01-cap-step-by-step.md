@@ -183,12 +183,12 @@ Leave this running. Every file save reloads automatically. This is where you'll 
 
 Try a query in the browser:
 ```
-http://localhost:4004/odata/v4/demo-service/svcSearchResult
+http://localhost:4004/odata/v4/demo-service/svcDemoApp
 ```
 or if you use GitHub Codespace:
 ```
 https://<codespace_name>-4004.app.github.dev/
-https://<codespace_name>-4004.app.github.dev/$fiori-preview/svcSearchResult/eSearchResult
+https://<codespace_name>-4004.app.github.dev/$fiori-preview/svcDemoApp/entSearchResult
 ```
 ---
 
