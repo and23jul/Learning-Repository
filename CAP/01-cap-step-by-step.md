@@ -238,7 +238,7 @@ The three handler phases you'll use constantly: `before` (validate / mutate inpu
 
 ---
 
-## 7. Call ECC as a remote service (the clean-core boundary) - CURRENTLY STUCK HERE, MAY HAVE TO BACKTRACK AND ADJUST
+## 7. Call ECC as a remote service (the clean-core boundary) 
 
 This is the important one. Your app reaches into ECC over a **released API via a destination** — it never modifies the core. This is the single concrete piece of "clean core."
 
@@ -328,7 +328,7 @@ in `package.json` under `cds` add `fiori.preview` with value true
 
 ---
 
-## 9. Swap SQLite → HANA Cloud
+## 9. Swap SQLite → Actual Database
 
 You've built everything on in-memory SQLite. Now make persistence real for production:
 
@@ -339,6 +339,28 @@ cds add hana
 This adds the HANA config and `@cap-js/hana` driver. Locally you keep using SQLite (`cds watch`); the HANA config kicks in for the deployed profile. You'll bind a HANA Cloud instance from your BTP space at deploy time.
 
 > Cost watch: HANA Cloud **meters while running**. In non-prod, schedule it to stop nights/weekends or the credit burn creeps up on you by month 9.
+
+Alternatively, we can use Postgre (Cheaper but not very cheap also)
+
+```bash
+cds add postgres
+```
+
+This adds the `@cap-js/postgres` driver, registers Postgres as your `db`, and wires a **PostgreSQL deployer app** into your `mta.yaml` pointing at the `postgresql-db` service. (Run `cds add mta` first — Step 11 — so the resource has somewhere to land.)
+
+Keep the fast inner loop on SQLite and use Postgres only when deployed — scope it to the production profile so `cds watch` stays in-memory and instant:
+
+```bash
+cds env requires.db --for production
+```
+
+**How the schema actually gets there.** Unlike HANA's HDI deployer, the auto-generated Postgres deployer compiles your model into `gen/pg/db/csn.json`, copies your `db/data/*.csv` alongside, and runs `cds-deploy` once at deploy time to create tables and load data. Note the dash in `cds-deploy` — the deployer runs without `@sap/cds-dk`, so the `cds` CLI isn't on its PATH.
+
+> **Trial-account gotcha:** `cds add postgres` defaults the service plan to `development`, which **isn't available on BTP trial**. If you're on trial, open `mta.yaml` and change the `postgresql-db` resource's `service-plan: development` → `trial`. On PAYG/CPEA there's also a free instance plan worth using for non-prod.
+
+> **Cost watch:** Postgres meters while running, same as HANA — it's cheaper at small scale, not free. Use the free/trial plan for non-prod and don't leave a `standard`/`development` instance running over nights and weekends.
+
+> **Local-parity warning:** SQLite ≠ Postgres, the same way SQLite ≠ HANA. Postgres folds unquoted identifiers to lowercase and is stricter on types, so something that passes on SQLite can break once deployed. Before you ship, smoke-test against a real Postgres locally via Docker (`postgres:alpine`, port 5432) and run with `DEBUG=sql` to see the actual SQL. Catch the dialect gaps on your laptop, not in CF.
 
 ---
 
