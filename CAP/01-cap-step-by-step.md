@@ -221,18 +221,17 @@ The CDS files gave you CRUD for free. Now add behaviour. Create `srv/demo-servic
 ```js
 const cds = require('@sap/cds')
 
-module.exports = class ceSearchResult extends cds.ApplicationService {
+module.exports = class clsSearchResult extends cds.ApplicationService {
   init() {
-    const { eSearchResult } = this.entities
+    const { entSearchResult } = this.entities
 
-    this.before('CREATE', eSearchResult, (req) => {
+    this.before('CREATE', entSearchResult, (req) => {
       if (!req.data.PONum) req.reject(400, 'PONum is required')
     })
 
     return super.init()
   }
 }
-
 ```
 
 The three handler phases you'll use constantly: `before` (validate / mutate input), `on` (replace the default behaviour entirely), `after` (read-only enrich, or trigger side-effects). Most of your business logic is `before` for guards and `after` for reactions.
@@ -243,7 +242,7 @@ The three handler phases you'll use constantly: `before` (validate / mutate inpu
 
 This is the important one. Your app reaches into ECC over a **released API via a destination** — it never modifies the core. This is the single concrete piece of "clean core."
 
-**a. Import the ECC service definition.** Get the EDMX/metadata of the ECC OData service you're calling (e.g. a PM notification service) and import it:
+**a. Import the ECC service definition.** Get the EDMX/metadata of the ECC OData service you're calling and import it:
 
 ```bash
 cds import ZMYOPTIMA_SRV.edmx --as cds
@@ -251,7 +250,7 @@ cds import ZMYOPTIMA_SRV.edmx --as cds
 
 This generates a local CDS definition of the remote service under `srv/external/`.
 
-**b. Declare it as a required remote service** in `package.json` under `cds.requires`, pointing at a destination (AUTO):
+**b. Declare it as a required remote service** in `package.json` under `cds.requires`, pointing at a destination (Supposedly already automatically generated, but add the credentials):
 
 ```jsonc
 "cds": {
@@ -259,7 +258,7 @@ This generates a local CDS definition of the remote service under `srv/external/
       "ZMYOPTIMA_SRV": {
         "kind": "odata-v2",
         "model": "srv/external/ZMYOPTIMA_SRV",
-        "credentials": { "destination": "Gateway-x96-SSO" }   
+        "credentials": { "destination": "Gateway-x96-SSO" }   //To be added manually, referring to BTP destination
       }
     }
 }
@@ -274,7 +273,7 @@ The destination  and its Cloud Connector route are configured in your BTP subacc
 
 ## 8. (Optional) Fiori elements preview
 
-If you want a UI without writing one, annotate and let Fiori elements generate it. Add `app/inspections/annotations.cds`:
+If you want a UI without writing one, annotate and let Fiori elements generate it. Add `app/demo-app/annotations.cds`:
 
 ```cds
 using svcSearchResult as svc from '../../srv/demo-service'; //This svcSearchResult referred from the one in search-result.cds
