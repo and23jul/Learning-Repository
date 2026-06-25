@@ -361,7 +361,6 @@ cds env requires.db --for production
 ---
 
 
-
 ## 10. Transfer Data Processing to Actual Service 
 
 In `db/schema.cds`. add `@cds.persistence.skip` above entity definition
