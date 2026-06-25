@@ -108,17 +108,13 @@ Why Port 4004 specifically? It's just CAP's default port. You can override it (c
 |---|---|---|---|---|---|
 | 1 | `schema.cds` | `db/` | Step 2 | CDS model |---|
 | 2 | `demo-service.cds` | `srv/` | Step 3 | CDS service |---|
-| 3 | `<Namespace>-SearchResult.csv` | `db/data/` | Step 5 | sample data | Subfolder `db/data/` need to be created manually |
-| 4 | `<Namespace>-DocsAttachment.csv` | `db/data/` | Step 5 | sample data | Subfolder `db/data/` need to be created manually |
+| 3 | `<Namespace>-SearchResult.csv` | `db/data/` | Step 5 | sample data | Subfolder `db/data/` to be created manually |
+| 4 | `<Namespace>-DocsAttachment.csv` | `db/data/` | Step 5 | sample data | Subfolder `db/data/` to be created manually |
 | 5 | `demo-service.js` | `srv/` | Step 6 | JS logic |---|
 | 6 | `annotations.cds` | `app/demo-app/` | Step 8 *(optional UI)* | CDS annotations | Subfolder `app/demo-app/` need to be created manually | 
 
-Notes on the folders:
-- `db/data/` does **not** exist yet — create the `data` subfolder under `db` first (right-click `db` → New Folder → `data`), then add the two CSVs inside it.
-- `app/demo-app/` also doesn't exist — only create it if you do the optional Fiori preview in Step 8 (right-click `app` → New Folder → `demo-app`).
-- **IMPORTANT:** The two `.js`/`.cds` in `srv/` must share the base name (`demo-service`) — that's how CAP auto-wires the logic file to the service.
 
-Do them top to bottom. After file 1 and file 2, `cds watch` already serves a working OData service — check `localhost:4004` before going further. Files 3–4 give it data, file 5 gives it behaviour, file 6 is the optional free UI.
+**IMPORTANT:** The two `.js`/`.cds` in `srv/` must share the base name (`demo-service`) — that's how CAP auto-wires the logic file to the service.
 
 ---
 
