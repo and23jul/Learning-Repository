@@ -20,8 +20,9 @@ The CAP loop you're learning: define a CDS model → `cds watch` gives you a liv
 - [7. Call ECC as a remote service (the clean-core boundary)](#7-call-ecc-as-a-remote-service-the-clean-core-boundary)
 - [8. (Optional) Fiori elements preview](#8-optional-fiori-elements-preview)
 - [9. Swap SQLite → HANA Cloud](#9-swap-sqlite--hana-cloud)
-- [10. Add security](#10-add-security)
-- [11. Deploy to Cloud Foundry](#11-deploy-to-cloud-foundry)
+- [10. Transfer Data Collection to Actual Service](#10-transfer-data-collection-to-actual-service)
+- [11. Add security](#11-add-security)
+- [12. Deploy to Cloud Foundry](#12-deploy-to-cloud-foundry)
 - [What to actually do tonight](#what-to-actually-do-tonight)
 ---
 
@@ -328,7 +329,7 @@ in `package.json` under `cds` add `fiori.preview` with value true
 
 ---
 
-## 9. Swap SQLite → Actual Database
+## 9. If You need Data Persistency Swap SQLite → Actual Database
 
 You've built everything on in-memory SQLite. Now make persistence real for production:
 
@@ -364,7 +365,50 @@ cds env requires.db --for production
 
 ---
 
-## 10. Add security
+
+
+## 10. Transfer Data Processing to Actual Service 
+
+In `db/schema.cds`. add `@cds.persistence.skip` above entity definition
+
+```cds
+namespace compname.divname.demoapp; //Namespace referred in some places in this document (all small letter, no separator on words-to be reviewed for Governance)
+
+....
+
+@cds.persistence.skip
+entity SearchResult : cuid, managed {
+  ...
+}
+
+@cds.persistence.skip
+entity DocsAttachment : cuid {
+  ...
+}
+```
+
+
+Also add these lines to the event handler `srv/demo-service.js` 
+
+```js
+this.on('READ', Inspections, async (req) => {
+  const ecc = await cds.connect.to('ECC_PM')   // your required remote service
+  return ecc.run(req.query)                      // forward the CQN query as-is
+})
+```
+
+If the entities is just SAP ackend Entity, instead of redefining in `db/schema.cds`, the definition should be done on service definition `srv/demo-service.cds` instead 
+
+```cds
+using { compname.divname.demoapp as myNS } from '../db/schema';     //Namespace Referred here and Instantiated
+
+service svcSearchResult {                                           //Service Instantiated here
+  entity entSearchResult     as projection on myNS.SearchResult;    //Entity Referred here and Instantiated
+  entity entDocsAttachment   as projection on myNS.DocsAttachment;  //Entity Referred here and Instantiated
+}
+```
+
+## 11. Add security
 
 ```bash
 cds add xsuaa
@@ -388,7 +432,7 @@ service InspectionService @(requires: 'authenticated-user') {
 
 ---
 
-## 11. Deploy to Cloud Foundry
+## 12. Deploy to Cloud Foundry
 
 ```bash
 cds add mta          # generates mta.yaml describing app + HANA + XSUAA
