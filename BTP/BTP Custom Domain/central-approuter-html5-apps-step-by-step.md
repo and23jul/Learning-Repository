@@ -1,0 +1,433 @@
+# Building a Central Standalone Approuter for HTML5 Apps (SAP BTP, Cloud Foundry)
+### One approuter, many apps, clean URLs, no SAP Build Work Zone
+
+A blank-slate, step-by-step build for serving multiple HTML5 apps directly at clean URLs
+(`https://apps.<company>.com/aps/apps/app1`) behind a single, central, **standalone** application
+router — deliberately **not** SAP Build Work Zone, because you want to own the URL scheme and serve
+apps directly without a launchpad.
+
+> **Grounding note.** Cloud Foundry environment of SAP BTP. `@sap/approuter` major version, the exact
+> mechanism for security headers, the `html5-apps-repo` plan names, and Custom Domain Manager labels
+> all drift between releases. Treat every literal here as a **verify-in-your-tenant skeleton**, not
+> gospel — confirm against current SAP Help and what the cockpit/CLI actually show you. No live
+> network was used to build this.
+
+---
+
+## Table of contents
+
+1. [What you're building, and the one design decision](#0-what-youre-building-and-the-one-design-decision)
+2. [Prerequisites](#1-prerequisites)
+3. [The architecture — decoupled, not bundled](#2-the-architecture--decoupled-not-bundled)
+4. [Project layout (the approuter)](#3-project-layout-the-approuter)
+5. [xs-security.json — XSUAA and redirect URIs](#4-xs-securityjson--xsuaa-and-redirect-uris)
+6. [approuter/package.json](#5-approuterpackagejson)
+7. [approuter/xs-app.json — the routing](#6-approuterxs-appjson--the-routing)
+8. [mta.yaml — the approuter only](#7-mtayaml--the-approuter-only)
+9. [Build and deploy the approuter](#8-build-and-deploy-the-approuter)
+10. [Deploy an app independently (proving "central")](#9-deploy-an-app-independently-proving-central)
+11. [Test](#10-test)
+12. [Put it on a custom domain](#11-put-it-on-a-custom-domain)
+13. [Harden it before production](#12-harden-it-before-production)
+14. [Gotchas](#13-gotchas)
+15. [End-state checklist](#14-end-state-checklist)
+
+---
+
+## 0. What you're building, and the one design decision
+
+A **standalone application router** is a small Node app (`@sap/approuter`) that you own and deploy as
+a Cloud Foundry app. It does three jobs: terminates the user session (login via XSUAA), rewrites
+incoming URL paths, and forwards the rewritten request to the **HTML5 Application Repository**, which
+stores and serves your built apps by name.
+
+The single decision that shapes everything: **one central approuter, apps deployed separately from
+it.** The naïve version bundles the approuter and every app into one `mta.yaml` — fine for a demo,
+wrong for a real estate of apps, because then *touching any app redeploys the router*. This guide
+keeps them apart so adding `app4` later is a one-line `cf deploy` of `app4` alone, and the router is
+never touched.
+
+> Mental model: the approuter is the **building's front desk** — one reception, one sign-in, it
+> directs you to any office by name. The apps are **tenants** that move in and out independently. You
+> don't rebuild reception every time a tenant changes the furniture.
+
+---
+
+## 1. Prerequisites
+
+- A BTP subaccount in the **Cloud Foundry** environment, with a Space and `cf` CLI logged in.
+- **Entitlements** in the subaccount for:
+  - `html5-apps-repo` — both `app-host` (storage) and `app-runtime` (serving) plans.
+  - `xsuaa` — `application` plan.
+  - (Later, for the domain) the **Custom Domain** service.
+- **Node.js** (LTS) locally.
+- **MTA build tooling**: `mbt` (Cloud MTA Build Tool) and the MultiApps CF plugin
+  (`cf install-plugin multiapps`).
+- Your HTML5 apps build to **static content** (UI5/Fiori or plain HTML5) with relative resource paths
+  (see Gotcha G1 — this is non-negotiable for prefixed URLs).
+
+---
+
+## 2. The architecture — decoupled, not bundled
+
+```
+                         apps.company.com   (Custom Domain → maps to ↓)
+                                  │
+                                  ▼
+        ┌─────────────────────────────────────────────┐
+        │      CENTRAL STANDALONE APPROUTER            │   ← one MTA, deployed once
+        │  binds: xsuaa + html5-apps-repo(app-runtime) │
+        │  xs-app.json:  /aps/apps/(.*) → /$1          │
+        └─────────────────────────────────────────────┘
+                                  │  forwards to html5-apps-repo-rt
+                                  ▼
+        ┌─────────────────────────────────────────────┐
+        │      HTML5 APPLICATION REPOSITORY (runtime)  │   ← resolves apps by name
+        └─────────────────────────────────────────────┘
+              ▲                ▲                 ▲
+              │                │                 │  each app deploys to its OWN app-host
+        ┌──────────┐    ┌──────────┐      ┌──────────┐
+        │  app1    │    │  app2    │      │  app3    │   ← separate MTAs, separate cadence
+        │ app-host │    │ app-host │      │ app-host │
+        └──────────┘    └──────────┘      └──────────┘
+```
+
+The split that makes it work: **storage vs serving.** Each app deploys its static content into its
+own `app-host` instance. The one central approuter binds a single `app-runtime` instance, and that
+runtime resolves **every** app across **all** `app-host` instances in the subaccount, by name. So the
+router needs zero knowledge of how many apps exist — the generic rewrite rule handles all of them.
+
+---
+
+## 3. Project layout (the approuter)
+
+The approuter is its own project / repo. Nothing else lives here.
+
+```
+aps-approuter/
+├── mta.yaml
+├── xs-security.json
+└── approuter/
+    ├── package.json
+    └── xs-app.json
+```
+
+That's the whole router. The apps are elsewhere (Section 9).
+
+---
+
+## 4. xs-security.json — XSUAA and redirect URIs
+
+```json
+{
+  "xsappname": "aps-approuter",
+  "tenant-mode": "dedicated",
+  "oauth2-configuration": {
+    "redirect-uris": [
+      "https://*.cfapps.<region>.hana.ondemand.com/**",
+      "https://apps.company.com/**"
+    ]
+  }
+}
+```
+
+| Element | What it does |
+|---|---|
+| `xsappname` | The XSUAA application name. Must be unique in the subaccount. |
+| `tenant-mode: dedicated` | Single-tenant. Use `shared` only if this is a multitenant SaaS provider app. |
+| `redirect-uris` | The **only** hosts XSUAA will redirect back to after login. The default `cfapps` wildcard lets you test now; the custom-domain entry lets Section 11 "just work." Add both **now** — a missing custom-domain entry is the #1 cause of post-domain-switch login loops. |
+
+---
+
+## 5. approuter/package.json
+
+```json
+{
+  "name": "aps-approuter",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@sap/approuter": "^16"
+  },
+  "scripts": {
+    "start": "node node_modules/@sap/approuter/approuter.js"
+  }
+}
+```
+
+> **Version flag:** `@sap/approuter` major moves (16+ at time of writing). Pin to whatever major is
+> current and supported for your Node version — check the npm page before committing.
+
+---
+
+## 6. approuter/xs-app.json — the routing
+
+This file *is* your URL scheme. The generic rewrite below makes **every** app in the repo reachable at
+`/aps/apps/<appName>/...` with no per-app config.
+
+```json
+{
+  "authenticationMethod": "route",
+  "sessionTimeout": 30,
+  "welcomeFile": "/aps/apps/app1/index.html",
+  "logout": {
+    "logoutEndpoint": "/logout",
+    "logoutPage": "/aps/apps/app1/index.html"
+  },
+  "routes": [
+    {
+      "source": "^/aps/apps/(.*)$",
+      "target": "/$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    }
+  ]
+}
+```
+
+| Element | What it does |
+|---|---|
+| `authenticationMethod: route` | Auth decided per-route, so each route's `authenticationType` applies. |
+| `sessionTimeout` | Idle session length in minutes. |
+| `welcomeFile` | Where bare `/` redirects — point it at a default app, because with no launchpad the root has no home of its own (see G3). |
+| `logout` | Gives you a real sign-out endpoint (`/logout`) and a post-logout landing page. With no launchpad, there's no launchpad logout button — you need this or users can't sign out. |
+| `source` (regex) | Matches the incoming path; `(.*)` captures everything after `/aps/apps/`. |
+| `target` | Rewrites it — strips the `/aps/apps/` prefix so the repo sees `/app1/...`. |
+| `service: html5-apps-repo-rt` | Forwards the rewritten path to the HTML5 App Repository runtime (available once `app-runtime` is bound). |
+| `authenticationType: xsuaa` | Forces XSUAA login before serving. |
+
+`<appName>` is the app's registered name in the repo, derived from `sap.app.id` in its
+`manifest.json`. If your ids are namespaced (`com.company.app1`) and you want a clean `/aps/apps/app1`,
+add explicit per-app routes instead of the generic one — at the cost of editing this file (and
+redeploying the router) for every new app. Generic rule = zero router changes; vanity aliases = clean
+URLs but router redeploys. Pick based on how often the app list churns.
+
+---
+
+## 7. mta.yaml — the approuter only
+
+```yaml
+_schema-version: "3.2"
+ID: com.company.aps.approuter
+version: 1.0.0
+
+modules:
+  - name: aps-approuter
+    type: nodejs                 # plain nodejs app running @sap/approuter
+    path: approuter
+    parameters:
+      memory: 256M
+      disk-quota: 512M
+      instances: 2               # HA — see Section 12
+    requires:
+      - name: aps-uaa
+      - name: aps-html5-runtime
+
+resources:
+  - name: aps-uaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+  - name: aps-html5-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-runtime
+```
+
+> Note: some templates use `type: approuter.nodejs` — that's MTA shorthand that pulls in the approuter
+> for you. `type: nodejs` with an explicit `package.json` (Section 5) is the transparent equivalent and
+> easier to reason about. Either works; don't mix them.
+
+What makes this **central**, in one line: the `app-runtime` binding + forwarding to
+`html5-apps-repo-rt` + the generic `(.*)` capture. Those three together mean any app deployed anywhere
+in the subaccount is instantly reachable here with no change. Drop the `app-runtime` binding or
+hardcode app names and you've lost "central."
+
+---
+
+## 8. Build and deploy the approuter
+
+```bash
+mbt build                          # produces mta_archives/*.mtar
+cf deploy mta_archives/*.mtar
+cf apps                            # note the aps-approuter route
+```
+
+At this point the router is live but has **no apps to serve yet** — that's expected. It'll 404 on
+`/aps/apps/anything` until Section 9 puts an app in the repo.
+
+---
+
+## 9. Deploy an app independently (proving "central")
+
+This is the payoff. The app is a **separate MTA** with its own `app-host`. Deploying it does **not**
+touch the approuter.
+
+```
+app1/
+├── mta.yaml
+└── webapp/ …                      # your UI5/HTML5 source (manifest.json, etc.)
+```
+
+`app1/mta.yaml`:
+
+```yaml
+_schema-version: "3.2"
+ID: com.company.app1
+version: 1.0.0
+
+modules:
+  - name: app1-content
+    type: com.sap.application.content
+    path: .
+    requires:
+      - name: app1-html5-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: resources
+      requires:
+        - name: app1
+          artifacts: [app1.zip]
+          target-path: resources/
+
+  - name: app1
+    type: html5
+    path: app1
+    build-parameters:
+      builder: custom
+      commands: [npm ci, npm run build]
+      build-result: dist
+      supported-platforms: []
+
+resources:
+  - name: app1-html5-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+```
+
+```bash
+cd app1
+mbt build && cf deploy mta_archives/*.mtar
+```
+
+| Piece | What it does |
+|---|---|
+| `com.sap.application.content` | One-shot deployer: pushes the built app zip into this app's `app-host`, then exits. |
+| `html5` module | Your actual app; `npm run build` produces the static `dist` that gets zipped. |
+| `html5-apps-repo / app-host` | Storage for **this** app, independent of the router and other apps. |
+
+Now `app1` is live at `/aps/apps/app1` through the central approuter you deployed in Section 8 — and
+you never redeployed the router. Repeat this section verbatim for `app2`, `app3`, … Each is its own
+MTA, its own `app-host`, its own deploy cadence. That's "central" delivered.
+
+---
+
+## 10. Test
+
+On the default domain first (debugging routing and custom domain at the same time is how weekends
+die):
+
+```
+https://<subaccount>-aps-approuter.cfapps.<region>.hana.ondemand.com/aps/apps/app1/
+```
+
+Login, app loads, browser network tab shows no cross-host redirects and no 404s on resources. If
+resources 404 but the page loads, it's almost always G1 (absolute paths) — fix it here, before the
+domain is in the mix.
+
+---
+
+## 11. Put it on a custom domain
+
+The router and path are already working; you're only changing what's in front. This is identical to
+the Custom Domain flow in `btp-custom-domain-html5-apps.md` — don't duplicate it, follow that doc's
+**Part B**:
+
+1. Entitle the **Custom Domain** service; open the **Custom Domain Manager**.
+2. Provide a TLS cert for `apps.company.com` (bring-your-own with full chain, or SAP-managed if
+   available).
+3. Register the domain; the Manager surfaces a **TXT** (verification) and a **CNAME target**.
+4. Add those DNS records (use the Manager's exact CNAME target — region-specific, never copied from a
+   blog).
+5. Map the CF route to the approuter:
+   ```bash
+   cf map-route aps-approuter company.com --hostname apps
+   ```
+6. Confirm `https://apps.company.com/**` is in XSUAA `redirect-uris` (you added it in Section 4) — and
+   in IAS redirect/home URLs if your IdP is SAP Cloud Identity.
+
+---
+
+## 12. Harden it before production
+
+A central approuter is one failure point with an **all-apps blast radius** — one bad deploy or unpatched
+CVE takes down every app at once. That raises the bar:
+
+- **HA is non-negotiable.** `instances: 2` minimum (Section 7). One instance = no zero-downtime
+  patching and a single point of failure for your whole app estate.
+- **Security headers are yours now.** Behind a launchpad, Work Zone sets CSP/HSTS/frame options.
+  Serving apps directly, the approuter is your only injection point. Configure them via the approuter's
+  header mechanism — **the exact key has shifted across `@sap/approuter` versions** (env-var JSON vs
+  `xs-app.json` config), so check the current approuter docs rather than trust a snippet. Direct-served
+  SPAs with no CSP are an easy security-review finding.
+- **Logout actually works.** The `logout` block (Section 6) is required — no launchpad means no
+  launchpad sign-out. Wire each app's logout button to `/logout`.
+- **Decide what `/` does.** `welcomeFile` redirects the bare root to a default app; confirm that's the
+  experience you want for someone hitting `apps.company.com` with nothing after it.
+- **Right-size and watch cost.** The approuter runs 24/7 — it's a metered CF app. 256M × 2 instances is
+  a sensible floor; size up only if you see memory pressure under real session load.
+- **CSRF stays on.** The approuter protects modifying requests by default. Only disable per-route
+  (`"csrfProtection": false`) for a specific, justified case — never globally.
+
+---
+
+## 13. Gotchas
+
+- **G1 — Absolute resource paths break under the prefix.** A well-built UI5 app requests resources
+  **relative** to `…/aps/apps/app1/index.html`, so they resolve back through the rewrite and work. Any
+  **absolute** reference (`/app1/x.js`, hardcoded roots) bypasses the prefix and 404s. #1 reason a path
+  "half works" — page loads, assets missing.
+- **G2 — Redirect-URI mismatch after switching domains.** Login loops/errors on the custom domain →
+  the custom-domain URL isn't in XSUAA `redirect-uris` (or IAS redirect URLs). Section 4 / 11.
+- **G3 — The path is the approuter's job, not the domain's.** You cannot get `/aps/apps/<app>` from the
+  Custom Domain service alone. `xs-app.json` owns it.
+- **G4 — App name in the URL = repo registration name.** With the generic rewrite, the `<app>` segment
+  is `sap.app.id`. Namespaced ids show up in the URL — use vanity aliases if you need the segment
+  decoupled.
+- **G5 — Don't bundle apps into the approuter MTA.** It works, but then every app change redeploys the
+  router and you've thrown away the whole reason for going central. Keep them in separate MTAs
+  (Section 9).
+- **G6 — Forgetting `app-runtime` on the approuter.** Without the `app-runtime` binding the approuter
+  can't reach `html5-apps-repo-rt`, and every `/aps/apps/...` route fails. The `app-host` (on the apps)
+  and `app-runtime` (on the router) are different plans doing different jobs — you need both, in the
+  right place.
+- **G7 — Certificate chain incomplete.** Server cert without the intermediate chain → TLS trust
+  failures on some clients. Upload the full chain.
+
+---
+
+## 14. End-state checklist
+
+- [ ] Standalone approuter deployed as its **own** MTA, bound to `xsuaa` + `html5-apps-repo`
+      (`app-runtime`), running `instances: 2`.
+- [ ] `xs-app.json` rewrites `/aps/apps/(.*) → /$1` to `html5-apps-repo-rt`, with `welcomeFile` and
+      `logout` set.
+- [ ] Each app deployed as a **separate** MTA with its own `app-host` — adding an app does not touch
+      the router.
+- [ ] Apps reachable at `…cfapps…/aps/apps/<app>` **before** the custom domain.
+- [ ] Custom Domain configured (cert + full chain), DNS TXT + CNAME resolving, CF route mapped to the
+      approuter.
+- [ ] `redirect-uris` (XSUAA) and IAS redirect/home URLs include the custom-domain URL.
+- [ ] Security headers (CSP/HSTS/frame) configured on the approuter.
+- [ ] `https://apps.company.com/aps/apps/app1` loads after login, no 404s, sign-out works.
+
+---
+
+*Compiled for SAP BTP, Cloud Foundry. `@sap/approuter` version, security-header configuration,
+`html5-apps-repo` plan names, and Custom Domain Manager specifics are version/region-dependent — verify
+against current SAP Help and your tenant's own output before relying on any literal here.*
