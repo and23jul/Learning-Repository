@@ -44,12 +44,12 @@ cds --version           # confirms the CLI is on your PATH
 ## 1. Scaffold the project
 
 ```bash
-cds init demo-app
+cds init demo-app --nodejs    # always pass --nodejs (or --java)
 cd demo-app
 npm install
 ```
 
-After NPM Install, you may get error saying package.json does not exist. if that happens create package.json manually in demo-app folder
+NOTE: In case you forgot to pass --<language> argument as above, package.json would not be generated and you can create package.json manually with the content as below (reference for nodejs variant). 
 ```js
 {
   "name": "demo-app",
