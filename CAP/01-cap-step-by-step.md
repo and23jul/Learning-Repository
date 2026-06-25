@@ -482,6 +482,7 @@ Create  `/app/router/xs-app.json`
 ```jsonc
 {
   "authenticationMethod": "route",
+  "welcomeFile": "/$fiori-preview/svcDemoApp/entSearchResult#preview-app", // Default Page
   "routes": [
     {
       "source": "^(.*)$",
