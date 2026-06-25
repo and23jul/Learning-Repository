@@ -278,7 +278,7 @@ If you want a UI without writing one, annotate and let Fiori elements generate i
 ```cds
 using svcSearchResult as svc from '../../srv/demo-service'; //This svcSearchResult referred from the one in search-result.cds
 
-annotate svc.eSearchResult with @(
+annotate svc.entSearchResult with @(
   UI: {
     LineItem: [
       { Value: PONum },
