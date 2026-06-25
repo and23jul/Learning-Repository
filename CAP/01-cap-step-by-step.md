@@ -508,7 +508,7 @@ cds add mta          # generates mta.yaml describing app + HANA + XSUAA
 npm install -g mbt   # multi-target build tool, one-time
 mbt build            # produces a .mtar archive
 cf login             # target your BTP CF org/space
-cf deploy mta_archives/inspection-app_1.0.0.mtar
+cf deploy mta_archives/demo-app_1.0.0.mtar
 ```
 
 The MTA descriptor bundles your CAP service, the HANA deployer, and the XSUAA instance, and binds them together. `cf deploy` provisions and wires the lot.
