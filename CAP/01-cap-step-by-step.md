@@ -20,7 +20,7 @@ The CAP loop you're learning: define a CDS model → `cds watch` gives you a liv
 - [7. Call ECC as a remote service (the clean-core boundary)](#7-call-ecc-as-a-remote-service-the-clean-core-boundary)
 - [8. (Optional) Fiori elements preview](#8-optional-fiori-elements-preview)
 - [9. Swap SQLite → HANA Cloud](#9-swap-sqlite--hana-cloud)
-- [10. Transfer Data Collection to Actual Service](#10-transfer-data-collection-to-actual-service)
+- [10. Transfer Data Processing to Actual Service](#10-transfer-data-processing-to-actual-service)
 - [11. Add security](#11-add-security)
 - [12. Deploy to Cloud Foundry](#12-deploy-to-cloud-foundry)
 - [What to actually do tonight](#what-to-actually-do-tonight)
