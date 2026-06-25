@@ -159,9 +159,9 @@ For more info on CDS Schema Syntax, refer to https://github.com/and23jul/Learnin
 Create `srv/demo-service.cds`. This exposes the model as an OData v4 service.
 
 ```cds
-using { compname.divname.demoapp as myNS } from '../db/schema';     //Namespace Referred here and Instantiated
+using { compname.divname.demoapp as myNS } from '../db/schema';     //Namespace Referred here and Instantiated for Local DB
 
-service svcSearchResult {                                           //Service Instantiated here
+service svcDemoApp {                                           //Service Instantiated here for Local DB
   entity entSearchResult     as projection on myNS.SearchResult;    //Entity Referred here and Instantiated
   entity entDocsAttachment   as projection on myNS.DocsAttachment;  //Entity Referred here and Instantiated
 }
@@ -222,7 +222,7 @@ The CDS files gave you CRUD for free. Now add behaviour. Create `srv/demo-servic
 ```js
 const cds = require('@sap/cds')
 
-module.exports = class clsSearchResult extends cds.ApplicationService {
+module.exports = class clsDemoApp extends cds.ApplicationService {
   init() {
     const { entSearchResult } = this.entities
 
@@ -277,7 +277,7 @@ The destination  and its Cloud Connector route are configured in your BTP subacc
 If you want a UI without writing one, annotate and let Fiori elements generate it. Add `app/demo-app/annotations.cds`:
 
 ```cds
-using svcSearchResult as svc from '../../srv/demo-service'; //This svcSearchResult referred from the one in search-result.cds
+using svcDemoApp as svc from '../../srv/demo-service'; //This svcSearchResult referred from the one in search-result.cds
 
 annotate svc.entSearchResult with @(
   UI: {
@@ -286,6 +286,7 @@ annotate svc.entSearchResult with @(
       { Value: PRNum }    ]
   }
 );
+
 
 ```
 
@@ -318,12 +319,6 @@ in `package.json` under `cds` add `fiori.preview` with value true
 }
 
 ```
-
-
-    "fiori": {
-      "preview": true
-    },
-
 
 `cds watch` will surface a Fiori elements preview link. This is the "free UI" path. If Fiori's too heavy for your UX (your earlier point), skip this entirely — your **UI5-Web-Components-for-React** app just consumes the same endpoint. The backend doesn't change.
 
@@ -397,18 +392,51 @@ this.on('READ', Inspections, async (req) => {
 })
 ```
 
-If the entities is just SAP backend Entity, instead of redefining in `db/schema.cds`, the definition should be done on service definition `srv/demo-service.cds` instead 
+If the entities is just SAP backend Entity, instead of redefining in `db/schema.cds`, the definition should be done on service definition `srv/demo-service.cds` instead. here's how you define them
 
 ```cds
-using { ZMYOPTIMA_SRV } from './external/ZMYOPTIMA_SRV';
+using { compname.divname.demoapp as myNS } from '../db/schema';   //Local DB namespace
+// service svcDemoApp {                                           //Service Instantiated here (for Local DB)
+//   entity entSearchResult     as projection on myNS.SearchResult;    //Entity Referred here and Instantiated
+//   entity entDocsAttachment   as projection on myNS.DocsAttachment;  //Entity Referred here and Instantiated
+// }
+
+using { ZMYOPTIMA_SRV } from './external/ZMYOPTIMA_SRV';           //Imported ECC OData service
 
 service svcDemoApp {
-  entity entSearchResult as projection on ZMYOPTIMA_SRV.getResearchDetailsSet {  // reshape ECC's fields
+  // Live ECC: reshape getResearchDetailsSet's fields into our names
+  entity entSearchResult as projection on ZMYOPTIMA_SRV.getResearchDetailsSet {
     key Banfn as ID,
         Banfn as PRNum,
         Ebeln as PONum
   };
+  entity entDocsAttachment   as projection on myNS.DocsAttachment;   //Local DB entity
 }
+
+```
+
+In the event handler `srv/demo-service.js` the method `init` have to be changed to `async init` and add "Live ECC" section
+
+```js
+const cds = require('@sap/cds')
+
+module.exports = class clsDemoApp extends cds.ApplicationService {
+//init() { //This is for Local Model
+  async init() {
+    const { entSearchResult } = this.entities
+
+    // Live ECC: forward reads of entSearchResult to the remote OData service
+    const ecc = await cds.connect.to('ZMYOPTIMA_SRV')
+    this.on('READ', entSearchResult, (req) => ecc.run(req.query))
+
+    this.before('CREATE', entSearchResult, (req) => {
+      if (!req.data.PRNum) req.reject(400, 'PRNum is required')
+    })
+
+    return super.init()
+  }
+}
+
 ```
 
 ## 11. Add security
