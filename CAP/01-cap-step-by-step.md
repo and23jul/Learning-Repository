@@ -108,10 +108,10 @@ Why Port 4004 specifically? It's just CAP's default port. You can override it (c
 |---|---|---|---|---|---|
 | 1 | `schema.cds` | `db/` | Step 2 | CDS model |---|
 | 2 | `demo-service.cds` | `srv/` | Step 3 | CDS service |---|
-| 3 | `<Namespace>-SearchResult.csv` | `db/data/` | Step 5 | sample data | Subfolder `db/data/` to be created manually |
-| 4 | `<Namespace>-DocsAttachment.csv` | `db/data/` | Step 5 | sample data | Subfolder `db/data/` to be created manually |
+| 3 | `<Namespace>-SearchResult.csv` | `db/data/` | Step 5 | sample data | `db/data/` to be created manually |
+| 4 | `<Namespace>-DocsAttachment.csv` | `db/data/` | Step 5 | sample data | `db/data/` to be created manually |
 | 5 | `demo-service.js` | `srv/` | Step 6 | JS logic |---|
-| 6 | `annotations.cds` | `app/demo-app/` | Step 8 *(optional UI)* | CDS annotations | Subfolder `app/demo-app/` need to be created manually | 
+| 6 | `annotations.cds` | `app/demo-app/` | Step 8 *(optional UI)* | CDS annotations | `app/demo-app/` to be created manually | 
 
 
 **IMPORTANT:** The two `.js`/`.cds` in `srv/` must share the base name (`demo-service`) — that's how CAP auto-wires the logic file to the service.
