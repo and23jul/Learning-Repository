@@ -264,7 +264,10 @@ This generates a local CDS definition of the remote service under `srv/external/
       "ZMYOPTIMA_SRV": {
         "kind": "odata-v2",
         "model": "srv/external/ZMYOPTIMA_SRV",
-        "credentials": { "destination": "Gateway-x96-SSO" }   //To be added manually, referring to BTP destination
+        "credentials": {
+          "destination": "Gateway-x96-SSO",    //To be added manually, referring to BTP destination
+          "path": "/sap/opu/odata/sap/ZMYOPTIMA_SRV"
+        }
       }
     }
 }
