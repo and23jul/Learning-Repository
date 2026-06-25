@@ -452,16 +452,49 @@ cds add xsuaa
 This generates `xs-security.json` and wires XSUAA. Define roles and protect the service in CDS:
 
 ```cds
-service InspectionService @(requires: 'authenticated-user') {
+{
+  "xsappname": "demo-app",
+  "tenant-mode": "dedicated",
+  "scopes": [],
+  "attributes": [],
+  "role-templates": []
+}
 
-  entity Inspections @(restrict: [
-    { grant: 'READ',  to: 'Inspector' },
-    { grant: ['CREATE','UPDATE'], to: 'Inspector' },
-    { grant: '*', to: 'InspectionAdmin' }
-  ]) as projection on my.Inspections;
+```
 
+Create  `/app/router/package.json` assuming that the approuter is a dedicated app router
+```jsonc
+{
+  "name": "demo-app-approuter",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@sap/approuter": "^22"
+  },
+  "scripts": {
+    "start": "node node_modules/@sap/approuter/approuter.js"
+  }
 }
 ```
+
+Create  `/app/router/xs-app.json` 
+```jsonc
+{
+  "authenticationMethod": "route",
+  "routes": [
+    {
+      "source": "^(.*)$",
+      "target": "$1",
+      "destination": "srv-api",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    }
+  ]
+}
+
+```
+
+
 
 `@requires` / `@restrict` map to scopes and role collections. Locally, `cds watch` mocks users (configurable in `.cdsrc.json`) so you can test authorization without XSUAA. In BTP, role collections get assigned to users in the subaccount — an unassigned role collection is the classic silent 403.
 
